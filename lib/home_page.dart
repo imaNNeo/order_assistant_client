@@ -22,25 +22,41 @@ class _HomePageState extends State<HomePage> {
           children: [
             Expanded(flex: 1, child: Container()),
             Row(
+              spacing: 12,
               mainAxisSize: MainAxisSize.min,
               children: [
                 ...List.generate(menuImages.length + 1, (index) {
                   if (index < menuImages.length) {
                     // render image
-                    return Tooltip(
-                      message: 'Remove this menu image',
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black38),
-                          borderRadius: BorderRadius.circular(10),
-                          image: DecorationImage(
-                            image: NetworkImage(menuImages[index].path),
-                            fit: BoxFit.cover,
+                    return Stack(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.black38),
+                            borderRadius: BorderRadius.circular(10),
+                            image: DecorationImage(
+                              image: NetworkImage(menuImages[index].path),
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
-                      ),
+                        Align(
+                          alignment: Alignment.topRight,
+                          child: Tooltip(
+                            message: 'Remove this menu image',
+                            child: IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                setState(() {
+                                  menuImages.removeAt(index);
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   }
                   return InkWell(
@@ -68,7 +84,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ),
             Expanded(flex: 1, child: Container()),
@@ -84,43 +100,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<XFile?> _loadOrTakePhoto(BuildContext context) async {
-    // show context menu
-    final ImageSource? source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (context) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera),
-              title: const Text('Camera'),
-              onTap: () => Navigator.of(context).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo),
-              title: const Text('Gallery'),
-              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (source == null) {
-      return null;
-    };
-
     final ImagePicker picker = ImagePicker();
-    XFile? image;
-    switch (source) {
-      case ImageSource.camera:
-        image = await picker.pickImage(source: ImageSource.camera);
-        break;
-      case ImageSource.gallery:
-        image = await picker.pickImage(source: ImageSource.gallery);
-        break;
-    }
-
+    XFile? image = await picker.pickImage(source: ImageSource.gallery);
     return image;
   }
 }
