@@ -24,6 +24,14 @@ class _HomePageState extends State<HomePage> {
   bool isResponseLoading = false;
   String response = '';
   String apiKey = '';
+  List<String> preferences = [
+    'Avoid ginger',
+    'No pork',
+    'Likes potato',
+    'broccoli',
+    'and cabbage',
+    'Prefers light meals before sleep',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +44,17 @@ class _HomePageState extends State<HomePage> {
           Column(
             children: [
               Expanded(flex: 1, child: Container()),
+              SizedBox(
+                width: 400,
+                child: ApiKeyField(
+                  onApiKeyReady: (apiKey) {
+                    setState(() {
+                      this.apiKey = apiKey;
+                    });
+                  },
+                ),
+              ),
+              SizedBox(height: 18),
               Row(
                 spacing: 12,
                 mainAxisSize: MainAxisSize.min,
@@ -161,15 +180,15 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
               SizedBox(height: 18),
-              SizedBox(
-                width: 400,
-                child: ApiKeyField(
-                  onApiKeyReady: (apiKey) {
-                    setState(() {
-                      this.apiKey = apiKey;
-                    });
-                  },
-                ),
+              Wrap(
+                spacing: 12,
+                children: preferences
+                    .map(
+                      (preference) => Chip(
+                        label: Text(preference),
+                      ),
+                    )
+                    .toList(),
               ),
               SizedBox(height: 18),
               SizedBox(
@@ -243,14 +262,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final result = await MyApi.requestSuggestion(
         apiKey: apiKey,
-        preferences: [
-          'Avoid ginger',
-          'No pork',
-          'Likes potato',
-          'broccoli',
-          'and cabbage',
-          'Prefers light meals before sleep',
-        ],
+        preferences: preferences,
         menuImages: menuImages.map((e) => e.$2).toList(),
         customPrompt: '',
       );
