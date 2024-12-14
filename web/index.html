@@ -34,5 +34,21 @@
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
+  <script src='https://unpkg.com/tesseract.js@v4.0.2/dist/tesseract.min.js'></script>
+  <script>
+    async function _extractText(imagePath , mapData){
+      var worker = await Tesseract.createWorker();
+      await worker.load();
+      await worker.loadLanguage(mapData.language)
+      await worker.initialize(mapData.language)
+      await worker.setParameters(mapData.args)
+      var rtn = await worker.recognize(imagePath, {}, worker.id);
+      await worker.terminate();
+      if(mapData.args["tessjs_create_hocr"]){
+        return rtn.data.hocr;
+      }
+      return rtn.data.text;
+    }
+  </script>
 </body>
 </html>
