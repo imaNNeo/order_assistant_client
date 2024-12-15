@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiKeyField extends StatefulWidget {
-  ApiKeyField({
+  const ApiKeyField({
     super.key,
     required this.onApiKeyReady,
   });
 
-  ValueChanged<String> onApiKeyReady;
+  final ValueChanged<String> onApiKeyReady;
 
   @override
   State<ApiKeyField> createState() => _ApiKeyFieldState();

@@ -1,6 +1,11 @@
 import 'package:dart_openai/dart_openai.dart';
+import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class MyApi {
+class MainDataSource {
+  static const _foodPreferencesKey = 'food_preferences';
+
   static Future<String> requestSuggestion({
     required String apiKey,
     required List<String> preferences,
@@ -75,5 +80,29 @@ I want something light to eat before I sleep. It's late at night and I don't wan
 
     // Print the JSON response
     return response.choices.first.message.content!.first.text!;
+  }
+
+  static Future<void> addNewFoodPreference(String newPreference) async {
+    final sharedPref = await SharedPreferences.getInstance();
+    sharedPref.setStringList(_foodPreferencesKey, [
+      ...sharedPref.getStringList(_foodPreferencesKey) ?? [],
+      newPreference,
+    ]);
+  }
+
+  static Future<List<String>> getAllFoodPreferences() async {
+    final sharedPref = await SharedPreferences.getInstance();
+    return sharedPref.getStringList(_foodPreferencesKey) ?? [];
+  }
+
+  static Future<String> extractTextFromImage(XFile imageFile) async {
+    return await FlutterTesseractOcr.extractText(
+      imageFile.path,
+      language: 'fas+eng+nld+fra+deu+ita',
+      args: {
+        "psm": "4",
+        "preserve_interword_spaces": "1",
+      },
+    );
   }
 }
