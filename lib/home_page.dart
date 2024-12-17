@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:order_assistant/cubit/main_cubit.dart';
 
-import 'api_key_field.dart';
 import 'helper_functions.dart';
 import 'loading_overlay.dart';
 
@@ -18,12 +17,46 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String apiKey = '';
 
+  late MainCubit mainCubit;
+
+  @override
+  void didChangeDependencies() {
+    mainCubit = context.read<MainCubit>();
+    super.didChangeDependencies();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<MainCubit, MainState>(
       listener: (context, state) {
         if (state.error.isNotEmpty) {
           HelperFunctions.showError(context, state.error);
+        }
+
+        if (state.response != null) {
+          // show a dialog with the response
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text('Suggestions'),
+                content: SelectionArea(
+                  child: SizedBox(
+                    width: 600,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: state.response!.suggestions.map((suggestion) {
+                        return ListTile(
+                          title: Text(suggestion.name),
+                          subtitle: Text(suggestion.explanation),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
         }
       },
       builder: (context, state) {
@@ -36,17 +69,6 @@ class _HomePageState extends State<HomePage> {
               Column(
                 children: [
                   Expanded(flex: 1, child: Container()),
-                  SizedBox(
-                    width: 400,
-                    child: ApiKeyField(
-                      onApiKeyReady: (apiKey) {
-                        setState(() {
-                          this.apiKey = apiKey;
-                        });
-                      },
-                    ),
-                  ),
-                  SizedBox(height: 18),
                   Row(
                     spacing: 12,
                     mainAxisSize: MainAxisSize.min,
@@ -58,7 +80,7 @@ class _HomePageState extends State<HomePage> {
                           ), (index) {
                         final menuImages = state.menuImages;
                         if (index < menuImages.length) {
-                          final (imageFile, imageText) = menuImages[index];
+                          final image = menuImages[index];
                           return SizedBox(
                             width: 100,
                             height: 100,
@@ -69,7 +91,7 @@ class _HomePageState extends State<HomePage> {
                                     border: Border.all(color: Colors.black38),
                                     borderRadius: BorderRadius.circular(10),
                                     image: DecorationImage(
-                                      image: NetworkImage(imageFile.path),
+                                      image: NetworkImage(image.file.path),
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -84,35 +106,6 @@ class _HomePageState extends State<HomePage> {
                                         setState(() {
                                           menuImages.removeAt(index);
                                         });
-                                      },
-                                    ),
-                                  ),
-                                ),
-                                Align(
-                                  alignment: Alignment.topRight,
-                                  child: Tooltip(
-                                    message: 'View text',
-                                    child: IconButton(
-                                      icon: const Icon(Icons.remove_red_eye),
-                                      onPressed: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) {
-                                            return AlertDialog(
-                                              title:
-                                                  const Text('Extracted Text'),
-                                              content: Text(imageText),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-                                                  },
-                                                  child: const Text('Close'),
-                                                ),
-                                              ],
-                                            );
-                                          },
-                                        );
                                       },
                                     ),
                                   ),
@@ -150,16 +143,36 @@ class _HomePageState extends State<HomePage> {
                       }),
                     ],
                   ),
-                  SizedBox(height: 18),
+                  SizedBox(height: 32),
+                  Text('Food Preferences:'),
+                  SizedBox(height: 6),
                   Wrap(
                     spacing: 12,
-                    children: state.allPreferences
-                        .map(
-                          (preference) => Chip(
-                            label: Text(preference),
+                    children: [
+                      ActionChip(
+                        onPressed: () => _onAddNewClicked(context),
+                        label: Text(
+                          '+ Add New',
+                          style: TextStyle(
+                            color: Colors.blue,
                           ),
-                        )
-                        .toList(),
+                        ),
+                      ),
+                      ...state.allPreferences.map(
+                        (preference) => Chip(
+                          label: Text(
+                            preference,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          onDeleted: () => mainCubit.removeFoodPreference(
+                            preference,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   SizedBox(height: 18),
                   SizedBox(
@@ -180,9 +193,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   Expanded(
                     flex: 2,
-                    child: SingleChildScrollView(
-                      child: Text(state.response),
-                    ),
+                    child:Container(),
                   ),
                 ],
               ),
@@ -196,5 +207,46 @@ class _HomePageState extends State<HomePage> {
 
   void _suggestMe(BuildContext context) async {
     context.read<MainCubit>().onSuggestMeClicked();
+  }
+
+  Future<String?> _showPopupAndGetText(BuildContext context) async {
+    final textController = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add New Preference'),
+          content: TextField(
+            controller: textController,
+            decoration: const InputDecoration(
+              hintText: 'Enter your preference',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, textController.text);
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+    textController.dispose();
+    return result;
+  }
+
+  void _onAddNewClicked(BuildContext context) async {
+    final newEnteredText = await _showPopupAndGetText(context);
+    if (newEnteredText != null && newEnteredText.trim().isNotEmpty) {
+      mainCubit.addFoodPreference(newEnteredText);
+    }
   }
 }

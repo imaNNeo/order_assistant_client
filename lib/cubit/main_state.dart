@@ -3,49 +3,72 @@ part of 'main_cubit.dart';
 class MainState extends Equatable {
   const MainState({
     this.allPreferences = const [],
-    this.apiKey = '',
     this.menuImages = const [],
     this.isFileLoading = false,
     this.isResponseLoading = false,
-    this.response = '',
+    this.response,
     this.error = '',
   });
 
   final List<String> allPreferences;
-  final String apiKey;
-  final List<(XFile, String)> menuImages;
+  final List<UploadingMenuImageItem> menuImages;
   final bool isFileLoading;
   final bool isResponseLoading;
-  final String response;
+  final SuggestionResponse? response;
   final String error;
 
   // copyWith
   MainState copyWith({
     List<String>? allPreferences,
-    String? apiKey,
-    List<(XFile, String)>? menuImages,
+    List<UploadingMenuImageItem>? menuImages,
     bool? isFileLoading,
     bool? isResponseLoading,
-    String? response,
+    ValueWrapper<SuggestionResponse>? response,
     String? error,
-  }) => MainState(
-    allPreferences: allPreferences ?? this.allPreferences,
-    apiKey: apiKey ?? this.apiKey,
-    menuImages: menuImages ?? this.menuImages,
-    isFileLoading: isFileLoading ?? this.isFileLoading,
-    isResponseLoading: isResponseLoading ?? this.isResponseLoading,
-    response: response ?? this.response,
-    error: error ?? this.error,
-  );
+  }) =>
+      MainState(
+        allPreferences: allPreferences ?? this.allPreferences,
+        menuImages: menuImages ?? this.menuImages,
+        isFileLoading: isFileLoading ?? this.isFileLoading,
+        isResponseLoading: isResponseLoading ?? this.isResponseLoading,
+        response: response != null ? response.value : this.response,
+        error: error ?? this.error,
+      );
 
   @override
-  List<Object> get props => [
+  List<Object?> get props => [
         allPreferences,
-        apiKey,
         menuImages,
         isFileLoading,
         isResponseLoading,
         response,
-    error,
+        error,
+      ];
+}
+
+class UploadingMenuImageItem with EquatableMixin {
+  final XFile file;
+  final String uploadedUrl;
+
+  UploadingMenuImageItem({
+    required this.file,
+    required this.uploadedUrl,
+  });
+
+  // copyWith
+  UploadingMenuImageItem copyWith({
+    XFile? file,
+    String? uploadedUrl,
+    bool? isUploading,
+  }) =>
+      UploadingMenuImageItem(
+        file: file ?? this.file,
+        uploadedUrl: uploadedUrl ?? this.uploadedUrl,
+      );
+
+  @override
+  List<Object?> get props => [
+        file,
+        uploadedUrl,
       ];
 }

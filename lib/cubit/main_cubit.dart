@@ -2,13 +2,13 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:order_assistant/data/main_data_source.dart';
-
-import '../helper_functions.dart';
+import 'package:order_assistant/entity/suggestion_response.dart';
+import 'package:order_assistant/entity/value_wrapper.dart';
+import 'package:order_assistant/helper_functions.dart';
 
 part 'main_state.dart';
 
 class MainCubit extends Cubit<MainState> {
-
   static const maxFiles = 3;
 
   MainCubit() : super(MainState()) {
@@ -17,7 +17,9 @@ class MainCubit extends Cubit<MainState> {
 
   void _initialize() async {
     final foodPreferences = await MainDataSource.getAllFoodPreferences();
-    emit(state.copyWith(allPreferences: foodPreferences));
+    emit(state.copyWith(
+      allPreferences: foodPreferences,
+    ));
   }
 
   void _emitError(String error) {
@@ -39,23 +41,28 @@ class MainCubit extends Cubit<MainState> {
         emit(state.copyWith(isFileLoading: false));
         return;
       }
-      final text = await MainDataSource.extractTextFromImage(photo);
+      final uri = await MainDataSource().uploadImage(
+        await photo.readAsBytes(),
+        photo.name,
+        photo.mimeType,
+      );
       emit(state.copyWith(
         isFileLoading: false,
-        menuImages: [...state.menuImages, (photo, text)],
+        menuImages: [
+          ...state.menuImages,
+          UploadingMenuImageItem(
+            file: photo,
+            uploadedUrl: uri,
+          ),
+        ],
       ));
-    } catch (e) {
-      _emitError('Error: $e');
+    } catch (e, stack) {
+      _emitError('Error: $stack');
       emit(state.copyWith(isFileLoading: false));
     }
   }
 
   void onSuggestMeClicked() async {
-    if (state.apiKey.isEmpty) {
-      _emitError('Please enter your API key');
-      return;
-    }
-
     if (state.menuImages.isEmpty) {
       _emitError('Please add at least one menu image');
       return;
@@ -71,20 +78,28 @@ class MainCubit extends Cubit<MainState> {
 
     emit(state.copyWith(isResponseLoading: true));
     try {
-      final result = await MainDataSource.requestSuggestion(
-        apiKey: state.apiKey,
+      final result = await MainDataSource().requestSuggestion(
         preferences: state.allPreferences,
-        menuImages: state.menuImages.map((e) => e.$2).toList(),
+        menuImageUrls: state.menuImages.map((e) => e.uploadedUrl).toList(),
         customPrompt: '',
       );
 
       emit(state.copyWith(
-        response: result,
+        response: ValueWrapper(result),
         isResponseLoading: false,
+      ));
+      emit(state.copyWith(
+        response: ValueWrapper.nullValue(),
       ));
     } catch (e) {
       _emitError('Error: $e');
       emit(state.copyWith(isResponseLoading: false));
     }
+  }
+
+  void removeFoodPreference(String preference) async {
+    await MainDataSource.removeFoodPreference(preference);
+    final foodPreferences = await MainDataSource.getAllFoodPreferences();
+    emit(state.copyWith(allPreferences: foodPreferences));
   }
 }
